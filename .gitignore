@@ -1,0 +1,7 @@
+*.key
+*.pem
+*.pfx
+.env
+.sfdx/
+.sf/
+node_modules/
