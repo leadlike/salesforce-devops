@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { evaluate, collect, main, validatePolicy, EXIT, Unverifiable } from '../org-guard.mjs';
 
 const load = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
@@ -169,8 +170,9 @@ test('collect: rejects target aliases that could inject shell syntax', () => {
 });
 
 // --- main(): exit codes and output ----------------------------------------
-const policyPath = new URL('../policy.example.json', import.meta.url).pathname;
-const ex = (f) => new URL(`../examples/${f}`, import.meta.url).pathname;
+// fileURLToPath (not URL.pathname) so that paths are valid on Windows as well.
+const policyPath = fileURLToPath(new URL('../policy.example.json', import.meta.url));
+const ex = (f) => fileURLToPath(new URL(`../examples/${f}`, import.meta.url));
 
 test('main: live mode PASS with an injected runner', () => {
   const out = []; const code = main(['--policy', policyPath, '--target-org', 'qa'], { runner: okRunner, log: (s) => out.push(s) });

@@ -11,6 +11,7 @@
 // (the guard could not complete verification or the configuration is invalid).
 
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
@@ -33,10 +34,10 @@ export function validatePolicy(policy) {
   if (!['sandbox', 'production'].includes(policy.environmentType)) bad('environmentType must be "sandbox" or "production"');
   if (typeof policy.expectedUsername !== 'string' || !policy.expectedUsername.includes('@')) bad('expectedUsername is required');
   if (!Array.isArray(policy.allowedInstanceHosts) || policy.allowedInstanceHosts.length === 0) bad('allowedInstanceHosts must be a non-empty array');
-  for (const h of policy.allowedInstanceHosts) if (typeof h !== 'string' || !HOST.test(h)) bad(`invalid host "${h}"`);
+  policy.allowedInstanceHosts.forEach((h, i) => { if (typeof h !== 'string' || !HOST.test(h)) bad(`allowedInstanceHosts[${i}] is not a valid host name`); });
   const deny = policy.denyOrgIds ?? [];
   if (!Array.isArray(deny)) bad('denyOrgIds must be an array');
-  for (const d of deny) if (!ORG_ID.test(d)) bad(`invalid deny-list entry "${d}"`);
+  deny.forEach((d, i) => { if (!ORG_ID.test(d)) bad(`denyOrgIds[${i}] is not a valid org ID`); });
   if (deny.some((d) => fifteen(d) === fifteen(policy.expectedOrgId))) bad('expectedOrgId is also on the deny list');
   return { ...policy, denyOrgIds: deny };
 }
@@ -102,9 +103,39 @@ export function evaluate({ policy: rawPolicy, display, organization }) {
   return { code: ok ? EXIT.PASS : EXIT.BLOCKED, verdict: ok ? 'PASS' : 'BLOCKED', checks };
 }
 
+// Characters allowed in a Windows command line argument. Anything else (quotes,
+// %, ^, &, |, <, >, parentheses, "!", line breaks) is refused rather than escaped,
+// because cmd.exe quoting rules are easy to get wrong.
+const WIN_SAFE_ARG = /^[A-Za-z0-9._@:=,/ -]+$/;
+const WIN_NO_QUOTE = /^[A-Za-z0-9._@-]+$/;
+
+/**
+ * Build a single command line for cmd.exe. Windows installs the Salesforce CLI as
+ * a .cmd file, which Node.js can only start through a shell. Arguments are never
+ * passed as an array together with a shell, because Node.js would then join them
+ * without quoting (so the SOQL text would be split at its spaces).
+ */
+export function windowsCommandLine(command, args) {
+  const parts = [command];
+  for (const a of args) {
+    if (typeof a !== 'string' || !WIN_SAFE_ARG.test(a)) throw new Unverifiable('an argument contains characters that cannot be passed safely on Windows');
+    parts.push(WIN_NO_QUOTE.test(a) ? a : `"${a}"`);
+  }
+  return parts.join(' ');
+}
+
+/** Describe how the CLI will be started on a platform. Pure, so it is testable everywhere. */
+export function spawnPlan(args, platform = process.platform) {
+  return platform === 'win32'
+    ? { command: windowsCommandLine('sf', args), argv: undefined, shell: true }
+    : { command: 'sf', argv: args, shell: false };
+}
+
 /** Default runner: executes the Salesforce CLI with a hard timeout. */
 export function cliRunner(args, timeoutMs) {
-  const r = spawnSync('sf', args, { encoding: 'utf8', timeout: timeoutMs, shell: process.platform === 'win32' });
+  const plan = spawnPlan(args);
+  const options = { encoding: 'utf8', timeout: timeoutMs, shell: plan.shell, windowsHide: true };
+  const r = plan.argv ? spawnSync(plan.command, plan.argv, options) : spawnSync(plan.command, options);
   return { status: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '', timedOut: r.error?.code === 'ETIMEDOUT', spawnError: r.error && r.error.code !== 'ETIMEDOUT' ? r.error.code ?? 'UNKNOWN' : undefined };
 }
 
@@ -125,31 +156,65 @@ export function collect({ runner = cliRunner, targetOrg, timeoutMs = 60000 }) {
   return { display, organization };
 }
 
-export function formatReport(result, mode) {
+// A Salesforce session ID has the form "<org ID>!<token>".
+const SESSION_ID = /00D[A-Za-z0-9]{12,15}![A-Za-z0-9_.]+/g;
+
+/**
+ * Last line of defense against secret leakage: mask anything shaped like a session
+ * ID, plus any secret value that is known at run time (for example the access token
+ * returned by the CLI). Every line the guard prints passes through this function.
+ */
+export function redact(text, secrets = []) {
+  let out = String(text).replace(SESSION_ID, '[REDACTED]');
+  for (const s of secrets) if (typeof s === 'string' && s.length >= 8) out = out.split(s).join('[REDACTED]');
+  return out;
+}
+
+export function formatReport(result, mode, secrets = []) {
   const lines = [`MODE: ${mode}`];
   for (const c of result.checks) lines.push(`${c.ok ? 'PASS' : 'FAIL'}  ${c.name}: ${c.detail}`);
   lines.push(`RESULT: ${result.verdict}`);
-  return lines.join('\n');
+  return redact(lines.join('\n'), secrets);
 }
+
+const VALUE_FLAGS = ['--policy', '--policy-sha256', '--target-org', '--display-file', '--organization-file', '--timeout-ms'];
 
 function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--offline-fixtures') out.offline = true;
-    else if (['--policy', '--target-org', '--display-file', '--organization-file', '--timeout-ms'].includes(a)) out[a.slice(2)] = argv[++i];
-    else throw new Unverifiable(`unknown argument "${a}"`);
+    else if (VALUE_FLAGS.includes(a)) out[a.slice(2)] = argv[++i];
+    else throw new Unverifiable('unknown argument'); // the argument is deliberately not echoed
   }
   return out;
 }
 
+function parseTimeout(value) {
+  if (value === undefined) return 60000;
+  if (!/^[0-9]{1,7}$/.test(value) || Number(value) < 1 || Number(value) > 600000) throw new Unverifiable('--timeout-ms must be an integer between 1 and 600000');
+  return Number(value);
+}
+
+/** Read the policy file once, optionally verify its pinned SHA-256, then parse the same bytes. */
+function loadPolicy(path, pin) {
+  let bytes;
+  try { bytes = readFileSync(path); }
+  catch { throw new Unverifiable('policy file is unreadable'); }
+  if (pin !== undefined) {
+    if (!/^[0-9a-fA-F]{64}$/.test(pin)) throw new Unverifiable('--policy-sha256 must be 64 hexadecimal characters');
+    if (createHash('sha256').update(bytes).digest('hex') !== pin.toLowerCase()) throw new Unverifiable('policy file does not match the pinned SHA-256 digest');
+  }
+  try { return JSON.parse(bytes.toString('utf8')); }
+  catch { throw new Unverifiable('policy file is not valid JSON'); }
+}
+
 export function main(argv, { runner = cliRunner, log = console.log } = {}) {
+  let secrets = [];
   try {
     const args = parseArgs(argv);
     if (!args.policy) throw new Unverifiable('--policy is required');
-    let policy;
-    try { policy = JSON.parse(readFileSync(args.policy, 'utf8')); }
-    catch { throw new Unverifiable('policy file is unreadable or not valid JSON'); }
+    const policy = loadPolicy(args.policy, args['policy-sha256']);
     let data, mode;
     if (args.offline) {
       mode = 'offline-fixture (NOT a live verification)';
@@ -159,14 +224,17 @@ export function main(argv, { runner = cliRunner, log = console.log } = {}) {
       } catch { throw new Unverifiable('fixture files are unreadable or not valid JSON'); }
     } else {
       mode = 'live';
-      data = collect({ runner, targetOrg: args['target-org'], timeoutMs: Number(args['timeout-ms'] ?? 60000) });
+      data = collect({ runner, targetOrg: args['target-org'], timeoutMs: parseTimeout(args['timeout-ms']) });
     }
+    secrets = [data.display?.result?.accessToken];
     const result = evaluate({ policy, ...data });
-    log(formatReport(result, mode));
+    log(formatReport(result, mode, secrets));
     return result.code;
   } catch (e) {
-    if (!(e instanceof Unverifiable)) throw e;
-    log(`MODE: n/a\nFAIL  verification: ${e.message}\nRESULT: UNVERIFIABLE`);
+    // Any failure, expected or not, is UNVERIFIABLE. Messages of unexpected errors and
+    // stack traces are never printed, because they may contain data from the CLI.
+    const reason = e instanceof Unverifiable ? e.message : 'unexpected internal error';
+    log(redact(`MODE: n/a\nFAIL  verification: ${reason}\nRESULT: UNVERIFIABLE`, secrets));
     return EXIT.UNVERIFIABLE;
   }
 }
