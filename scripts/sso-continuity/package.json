@@ -1,0 +1,1 @@
+{"name":"salesforce-sso-continuity-reference","version":"0.2.0","private":true,"description":"Offline, read-only fictional Salesforce Federation ID reconciliation example","scripts":{"test":"node --test test/*.test.js","audit:demo":"node src/cli.js fixtures/baseline.json fixtures/snapshot.json"},"engines":{"node":">=20"},"license":"MIT"}
