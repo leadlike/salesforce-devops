@@ -1,0 +1,17 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "AuthProvider"
+        },
+        "DeveloperName": "Fictional_OIDC",
+        "FriendlyName": "Fictional OIDC",
+        "ProviderType": "OpenIdConnect"
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  }
+}

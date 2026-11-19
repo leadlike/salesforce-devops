@@ -20,7 +20,7 @@ const FORBIDDEN_RANGES = [
   [0x0000, 0x001f], [0x007f, 0x009f], [0x00ad, 0x00ad], [0x200b, 0x200f],
   [0x2028, 0x202e], [0x2060, 0x2064], [0x2066, 0x2069], [0xfeff, 0xfeff], [0xfffd, 0xfffd],
 ];
-const hasForbiddenChar = (text) => {
+export const hasForbiddenChar = (text) => {
   for (const ch of text) {
     const cp = ch.codePointAt(0);
     if (FORBIDDEN_RANGES.some(([lo, hi]) => cp >= lo && cp <= hi)) return true;
@@ -85,13 +85,14 @@ export function validateBaseline(doc, limits = DEFAULT_LIMITS) {
 }
 
 /**
- * Validate the snapshot. Returns { orgKey, users: [{ userKey, active, federationId }], declaredSize, done }.
+ * Validate the snapshot. Returns { orgKey, users: [{ userKey, active, federationId }], declaredSize, done, uncorrelatedUsers }.
+ * `uncorrelatedUsers` counts active users that could not be given a userKey; it is 0 when absent.
  * `federationId` is a string, or null when the org holds no value.
  */
 export function validateSnapshot(doc, limits = DEFAULT_LIMITS) {
   plainObject(doc, 'snapshot');
   schemaVersion(doc, 'snapshot');
-  onlyKeys(doc, ['schemaVersion', 'orgKey', 'users', 'totalSize', 'done'], 'snapshot');
+  onlyKeys(doc, ['schemaVersion', 'orgKey', 'users', 'totalSize', 'done', 'uncorrelatedUsers'], 'snapshot');
   const key = orgKey(doc, 'snapshot');
   if (!Array.isArray(doc.users)) fail('snapshot users must be an array');
   if (doc.users.length > limits.maxUsers) throw new Unverifiable('E_LIMIT_RECORDS', 'snapshot exceeds the record limit');
@@ -105,6 +106,11 @@ export function validateSnapshot(doc, limits = DEFAULT_LIMITS) {
     if (typeof doc.done !== 'boolean') fail('snapshot done must be a boolean');
     done = doc.done;
   }
+  let uncorrelatedUsers = 0;
+  if (Object.hasOwn(doc, 'uncorrelatedUsers')) {
+    if (!Number.isSafeInteger(doc.uncorrelatedUsers) || doc.uncorrelatedUsers < 0 || doc.uncorrelatedUsers > limits.maxUsers) fail('snapshot uncorrelatedUsers must be a non-negative integer');
+    uncorrelatedUsers = doc.uncorrelatedUsers;
+  }
   const users = doc.users.map((user) => {
     plainObject(user, 'snapshot user');
     onlyKeys(user, ['userKey', 'active', 'federationId'], 'snapshot user');
@@ -114,5 +120,5 @@ export function validateSnapshot(doc, limits = DEFAULT_LIMITS) {
     const federationId = raw === null ? null : federationIdText(raw, 'snapshot user');
     return { userKey: user.userKey, active: user.active, federationId };
   });
-  return { orgKey: key, users, declaredSize, done };
+  return { orgKey: key, users, declaredSize, done, uncorrelatedUsers };
 }

@@ -1,0 +1,27 @@
+# ILLUSTRATIVE EXAMPLE. NOT EXECUTED on GitLab CI or any other CI system.
+# Only checked to be syntactically valid YAML. All names are fictional.
+#
+# READ-ONLY verification of Federation IDs. It changes nothing in Salesforce, and a PASS
+# does not prove that anyone can sign in.
+#
+# Protection model: the module, the policy and the baseline live in a PROTECTED project.
+# They are cloned at a pinned tag, so a merge request in the product project cannot
+# change them. The real baseline maps people to Federation IDs and must never be stored
+# in a public repository. Use protected, masked CI/CD variables for the JWT key, and
+# restrict this job to protected branches or tags.
+
+sso-verify:
+  stage: test
+  image: node:22
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  script:
+    # Fetch the controls at a pinned tag, using the job token (read access granted by the protected project).
+    - git clone --depth 1 --branch sso-verify-v0 "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.example.invalid/platform/pipeline-controls.git" controls
+    # Authenticate the Salesforce CLI with a read-only integration user (JWT).
+    - sf org login jwt --client-id "$SF_CLIENT_ID" --jwt-key-file "$SF_JWT_KEY_FILE" --username "$SF_USERNAME" --instance-url "$SF_INSTANCE_URL"
+    # Org Guard first: is this the org we meant?
+    - node controls/org-guard/org-guard.mjs --policy controls/policies/qa.json --policy-sha256 "$ORG_GUARD_POLICY_SHA256_QA" --target-org "$SF_USERNAME"
+    # Verify. Exit code 0 = verified and nothing to review; 2 = review required; 3 = unverifiable.
+    # GitLab fails the job on any non-zero exit code. Do not add "allow_failure" or pipe the output.
+    - node controls/sso-continuity/src/live-cli.mjs verify --policy controls/sso-policies/qa.json --policy-sha256 "$SSO_POLICY_SHA256_QA" --baseline controls/sso-baselines/qa.json --target-org "$SF_USERNAME"

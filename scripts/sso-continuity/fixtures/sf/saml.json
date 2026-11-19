@@ -1,0 +1,21 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "SamlSsoConfig"
+        },
+        "DeveloperName": "Fictional_IdP",
+        "MasterLabel": "Fictional IdP",
+        "IdentityMapping": "FederationId",
+        "IdentityLocation": "SubjectNameId",
+        "OptionsUserProvisioning": false,
+        "Issuer": "https://idp.example.invalid/issuer",
+        "LoginUrl": "https://idp.example.invalid/login"
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  }
+}
