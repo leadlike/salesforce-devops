@@ -49,7 +49,7 @@ The full chapter list and status is in [docs/README.md](docs/README.md).
 
 ## Roadmap (planned, not delivered)
 
-The scope below is planned. None of it has been released yet.
+The scope below is planned. No release has been tagged yet. Material that already exists in the repository, and how far it has been verified, is listed in the [verification matrix](#verification-matrix).
 
 | Release | Planned scope |
 |---------|-------|
@@ -68,11 +68,26 @@ Every pattern carries one of these labels.
 | Label | Meaning |
 |-------|---------|
 | `concept` | Designed, not yet built |
-| `local-tested` | Passes offline tests |
-| `ci-validated` | Proven in a CI run against a real sandbox |
+| `local-tested` | Passes offline tests, run locally and, where stated, in a hosted CI |
+| `ci-validated` | Proven in a CI pipeline against a real sandbox |
 | `production-proven` | Used in production |
 
+Offline tests that run in a hosted CI do **not** make a pattern `ci-validated`. That label requires a real Salesforce org and the target pipeline.
+
 Simulated results are never presented as results from a real Salesforce org.
+
+### Verification matrix
+
+Each chapter reports four independent kinds of verification instead of one label. The only chapter with implementation so far is Chapter 8.
+
+| Verification | Chapter 8: Org Guard | Evidence |
+|--------------|----------------------|----------|
+| Offline unit tests validated in CI | **Verified.** 50 of 50 pass on GitHub-hosted runners (Linux and Windows, Node.js 20 and 22) | [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364) |
+| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed; CLI output shapes are assumed from documentation | None |
+| Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
+| Live Salesforce deployment | **Not yet verified.** Nothing has run against a Salesforce org | None |
+
+Chapter 8 therefore stays at `local-tested`.
 
 ## When not to build this yourself
 

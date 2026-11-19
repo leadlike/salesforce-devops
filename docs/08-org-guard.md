@@ -1,8 +1,13 @@
 # Chapter 8 — Org Guard
 
-> **Draft. Not published.** This chapter is not linked from the chapter index and has not been merged into `main`.
->
-> **Maturity status: `local-tested`.** The reference implementation passes an offline test suite (50 tests) on Linux and Windows, on Node.js 20 and 22. It has **not** been run against a live Salesforce org, with a real Salesforce CLI, or in an Azure DevOps Server pipeline. The status stays `local-tested` until those things are demonstrated. See [Evidence](#12-evidence) and [Limitations](#11-limitations).
+> **Maturity status: `local-tested`.** The reference implementation passes an offline test suite (50 tests) in CI on Linux and Windows, on Node.js 20 and 22. Nothing else has been verified. The status stays `local-tested` until the items marked "Not yet verified" below are demonstrated. See [Evidence](#12-evidence) and [Limitations](#11-limitations).
+
+| Verification | Status | Evidence |
+|--------------|--------|----------|
+| Offline unit tests validated in CI | **Verified.** 50 of 50 on GitHub-hosted runners: Linux and Windows, Node.js 20 and 22 | [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364) |
+| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed; CLI output shapes are assumed from documentation | None |
+| Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
+| Live Salesforce deployment | **Not yet verified.** Nothing has run against a Salesforce org | None |
 
 ## 1. Problem
 
@@ -359,7 +364,10 @@ This section is part of the pattern. Read it before copying the code.
 | Item | Result |
 |------|--------|
 | Offline test suite, local run | 50 of 50 passing: 29 baseline tests (unchanged) plus 21 added for the identified risks. Node.js v22.23.5, Linux |
-| Offline test suite, GitHub-hosted runners | 50 of 50 passing in each of four jobs: Windows and Linux, Node.js 22.23.4 and 20.20.2. Run: <https://github.com/leadlike/salesforce-devops/actions/runs/44445871646> (commit `1cd3297`) |
+| Offline test suite, GitHub-hosted runners | 50 of 50 passing in each of four jobs: Windows and Linux, Node.js 22.23.4 and 20.20.2. Run on the branch: <https://github.com/leadlike/salesforce-devops/actions/runs/44445871646> (commit `1cd3297`). Run on `main` after the merge: <https://github.com/leadlike/salesforce-devops/actions/runs/44446574364> (commit `3b28f15`) |
+| Clean-checkout reproduction | A fresh clone of the branch, with an empty environment (no variables, no credentials, no Salesforce CLI installed) and also with no network namespace, ran 50 of 50 through both `node --test` and `npm test`. The package has no dependencies |
+| Downstream stop, local simulation | A shell chain `guard && deploy-step` ran the deploy step only for PASS. It did not run for BLOCKED (exit 2) or for UNVERIFIABLE (exit 3: bad fixtures, no `sf`, no arguments, wrong policy digest). This verifies exit-code semantics only. It is **not** a run in Azure DevOps Server |
+| Example pipeline structure | Parsed as YAML: authentication, guard and validation appear in that order; the guard step has no `continueOnError`, `condition` or output pipe, does not use offline mode, and passes the policy digest |
 | Mutation checks (manual) | Ten deliberate defects were introduced one at a time and the suite re-run: host check disabled, timeout treated as success, access token printed, digest never compared, redaction disabled, raw error message printed, Windows quoting removed, BLOCKED exiting with 0, unknown argument echoed, timeout not validated. Each is now detected by at least one failing test. Two were **not** detected at first (token printed through raw standard output, and the timeout check, whose test was neutralized because the program converts every exception into UNVERIFIABLE). Both tests were corrected and the defects were then caught |
 | Live verification against Salesforce | **None** |
 | Run in an Azure DevOps Server pipeline | **None** |

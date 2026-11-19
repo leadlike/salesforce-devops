@@ -2,7 +2,7 @@
 
 Each chapter is a verifiable engineering pattern with five elements: a problem statement, an implementation, a threat or failure model, executable tests and evidence.
 
-"Status" is the maturity of the material **published in this repository**. At this stage no chapter has been published yet.
+"Status" is the maturity of the material **published in this repository**. At this stage only Chapter 8 has been published. See the [verification matrix](../README.md#verification-matrix) for what that status does and does not cover.
 
 | Part | Chapter | Status | Target |
 |------|---------|--------|--------|
@@ -13,7 +13,7 @@ Each chapter is a verifiable engineering pattern with five elements: a problem s
 | | 5. Hotfixes, scratch orgs and parallel releases | concept | v0.5 |
 | II. Safe execution | 6. Self-hosted agents and restricted networks | concept | v0.2 |
 | | 7. Salesforce CLI and JWT authentication | concept | v0.1 |
-| | 8. Org Guard | concept | v0.1 |
+| | 8. [Org Guard](08-org-guard.md) | local-tested | v0.1 |
 | | 9. Deployment validation and Apex tests | concept | v0.2 |
 | III. Functional confidence | 10. Testing without a live org | concept | v0.1 |
 | | 11. End-to-end tests for email and Cases | concept | v0.4 |
