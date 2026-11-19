@@ -1,8 +1,8 @@
 # SSO continuity: Federation ID reconciliation
 
-Offline, read-only reference implementation of [Chapter 14](../../docs/14-sso-audit-federation-id-reconciliation.md). It compares an approved list of Federation IDs with a snapshot of Salesforce users. All data in this directory is fictional.
+Read-only reference implementation of [Chapter 14](../../docs/14-sso-audit-federation-id-reconciliation.md). It compares an approved list of Federation IDs with a snapshot of Salesforce users, and can build that snapshot through the Salesforce CLI. All data in this directory is fictional.
 
-**Status: `local-tested`.** Offline tests only. Nothing has run against a Salesforce org or an identity provider, and this tool does **not** verify that anyone can sign in. See the chapter for the verification matrix and limitations.
+**Status: `local-tested`.** Offline tests only. The Salesforce CLI path is tested against a fake runner and **has never run against a real org**. Nothing has run against an identity provider, and this tool does **not** verify that anyone can sign in. See the chapter for the verification matrix and limitations, and the [audit workflow](../../docs/sso-audit-workflow.md) for how to run it.
 
 ## Run
 
@@ -13,11 +13,21 @@ npm test            # runs every test in test/ (node --test)
 npm run audit:demo  # runs the fictional example; exits with 2
 ```
 
-Direct use:
+Offline audit of two files:
 
 ```
 node src/cli.mjs <baseline.json> <snapshot.json>
 ```
+
+Live, read-only commands (need an authenticated Salesforce CLI and a policy file; see `fixtures/policy.example.json`):
+
+```
+node src/live-cli.mjs snapshot  --policy P --target-org ALIAS
+node src/live-cli.mjs inventory --policy P --target-org ALIAS
+node src/live-cli.mjs verify    --policy P --baseline B --target-org ALIAS --policy-sha256 H
+```
+
+These run only `sf data query` with a fixed set of SELECT statements. They cannot create, update, delete or deploy anything.
 
 ## Exit codes
 
@@ -38,14 +48,20 @@ Only `0` is success. Federation ID values are never printed. `userKey` values ar
 | `src/json-input.mjs` | Strict JSON loading: size, depth, duplicate keys |
 | `src/limits.mjs` | Resource limits |
 | `src/errors.mjs` | Error type and stable error codes |
-| `src/cli.mjs` | Command-line entry point |
+| `src/cli.mjs` | Offline audit entry point |
+| `src/live-cli.mjs` | Read-only live commands: `snapshot`, `inventory`, `verify` |
+| `src/policy.mjs` | Live-run policy: org identifier, correlation field, digest pin |
+| `src/queries.mjs` | The only SOQL that can run, behind a read-only gate |
+| `src/sf-runner.mjs` | The only file that starts a process: `sf data query` |
+| `src/snapshot.mjs` | Deterministic `userKey` correlation and snapshot building |
+| `src/inventory.mjs` | SAML configuration and Auth Provider inventory |
 | `fixtures/` | Fictional example inputs |
 | `test/` | Tests (`node:test`, no dependencies) |
-| `testkit/` | Test helpers, kept outside `test/` |
+| `testkit/` | Test helpers, including a fake Salesforce CLI runner. Kept outside `test/` |
 
 ## Not implemented
 
-No Salesforce CLI integration, no SAML, certificate, Auth Provider or Connected App inspection, no backup or post-refresh comparison, and **no write operations of any kind**. See the [future architecture](../../docs/sso-continuity-architecture.md).
+Certificate monitoring, Connected App inspection, drift detection, backup, post-refresh comparison, login verification, and **write operations of any kind**. See the [future architecture](../../docs/sso-continuity-architecture.md) and the [recovery design](../../docs/sso-post-refresh-recovery-architecture.md).
 
 ## Security notes
 

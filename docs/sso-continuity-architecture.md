@@ -1,6 +1,6 @@
 # SSO continuity architecture (future, not implemented)
 
-> **Status: `concept`, with one exception.** Only module 2 (Federation ID audit) has an implementation, and only an offline, local-tested one: [Chapter 14](14-sso-audit-federation-id-reconciliation.md). Everything else on this page is a design. Nothing here has run against a Salesforce org, an identity provider or a login.
+> **Status: mostly `concept`.** Module 2 (Federation ID audit) and parts of modules 1, 3 and 5 are implemented and tested offline against a fake Salesforce CLI: [Chapter 14](14-sso-audit-federation-id-reconciliation.md) and the [audit workflow](sso-audit-workflow.md). Everything else is a design. Nothing here has run against a Salesforce org, an identity provider or a login. The recovery design is in [post-refresh recovery architecture](sso-post-refresh-recovery-architecture.md).
 
 ## Purpose
 
@@ -18,11 +18,11 @@ Keep single sign-on working across environment changes, above all sandbox refres
 
 | # | Module | Purpose | Reads | Writes | Status |
 |---|--------|---------|-------|--------|--------|
-| 1 | Salesforce SSO inventory | List which SSO mechanisms an org has configured | Org metadata | none | `concept` |
-| 2 | Federation ID audit | Compare approved identities with a snapshot of users | Baseline file, snapshot file | none | `local-tested` ([Chapter 14](14-sso-audit-federation-id-reconciliation.md)) |
-| 3 | SAML configuration inspection | Report SAML settings and compare with an approved description | Org metadata | none | `concept` |
+| 1 | Salesforce SSO inventory | List which SSO mechanisms an org has configured | Org metadata | none | `local-tested`, partial: SAML configurations and Auth Providers only (`inventory`) |
+| 2 | Federation ID audit | Compare approved identities with a snapshot of users | Baseline file, snapshot file; optionally a live read through `sf data query` | none | `local-tested` ([Chapter 14](14-sso-audit-federation-id-reconciliation.md)); the live read is tested only against a fake CLI |
+| 3 | SAML configuration inspection | Report SAML settings and compare with an approved description | Org metadata | none | `concept`; `inventory` reports identity mapping, provisioning and issuer and login URL fingerprints, with no comparison to an approved description |
 | 4 | Certificate expiration monitoring | Report certificates and their expiry dates | Org metadata | none | `concept` |
-| 5 | Auth Provider and Connected App inspection | Report configured providers and apps | Org metadata | none | `concept` |
+| 5 | Auth Provider and Connected App inspection | Report configured providers and apps | Org metadata | none | `concept`; Auth Providers are listed by `inventory`, Connected Apps are not covered |
 | 6 | SSO drift detection | Compare current configuration with an approved baseline | Modules 1, 3, 4, 5 output | none | `concept` |
 | 7 | Pre-refresh backup | Capture what must be restored after a refresh | Org metadata, user data | A protected store outside Git | `concept` |
 | 8 | Post-refresh comparison | Compare the refreshed org with the pre-refresh capture | Backup, org metadata | none | `concept` |
@@ -64,8 +64,8 @@ Until those conditions are written down and reviewed, the repository will not co
 
 ## Order of work
 
-1. Module 2 against a real sandbox snapshot (read-only).
-2. Modules 1, 3, 4, 5 as read-only inventories.
+1. Module 2 and the inventory against a real sandbox (read-only). This is the next milestone.
+2. Modules 3, 4, 5 completed as read-only inspections.
 3. Modules 7 and 8 for refresh comparison.
 4. Modules 6 and 10 on top of those results.
 5. Only then: a design review for module 9.

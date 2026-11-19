@@ -1,11 +1,11 @@
 # Chapter 14 — SSO audit and Federation ID reconciliation
 
-> **Maturity status: `local-tested`.** The reference implementation is offline, read-only and dependency-free. Its 55 tests run in CI on Linux and Windows, on Node.js 20 and 22. **It does not validate SSO.** It compares a list of approved identities with a snapshot of Salesforce users and reports differences. No Salesforce org, identity provider or SSO login has been involved. See [Evidence](#13-evidence) and [Limitations](#12-limitations).
+> **Maturity status: `local-tested`.** The reference implementation is read-only and dependency-free. Its 121 tests run offline in CI on Linux and Windows, on Node.js 20 and 22. **It does not validate SSO.** It compares a list of approved identities with a snapshot of Salesforce users and reports differences. A read-only adapter can build that snapshot through the Salesforce CLI, but it has only been tested against a fake CLI. No Salesforce org, identity provider or SSO login has been involved. See [Evidence](#13-evidence) and [Limitations](#12-limitations).
 
 | Verification | Status | Evidence |
 |--------------|--------|----------|
-| Offline unit tests validated in CI | **Verified.** 55 of 55 on GitHub-hosted runners: Linux and Windows, Node.js 20 and 22 | [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44461346263) |
-| Salesforce CLI integration | **Not yet verified.** No snapshot has ever been produced from a real org; the snapshot format is a contract, not an observed output | None |
+| Offline unit tests validated in CI | **Verified.** 121 of 121 on GitHub-hosted runners: Linux and Windows, Node.js 20 and 22 (the earlier 55 passed on `main`: [run](https://github.com/leadlike/salesforce-devops/actions/runs/44461346263)) | __CI_RUN_URL_V03__ |
+| Salesforce CLI integration | **Implemented, not verified.** The adapter is tested only against a fake CLI runner. The real CLI's output shape was taken from documentation, and no snapshot has ever been produced from a real org | None |
 | Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
 | GitLab CI integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
 | Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | None |
@@ -35,10 +35,22 @@ This module never infers identity from an e-mail address, and never assumes that
 To compare a baseline with an org you need a stable way to say "this baseline entry is that Salesforce user". The module uses an **approved correlation identifier**, called `userKey`.
 
 - `userKey` is assigned and approved by people, outside this module. It is an opaque label such as `employee-101`.
-- It is not derived from the Salesforce record Id, the username or the e-mail address by this code.
-- The same `userKey` must appear in the baseline and in the snapshot. How a snapshot producer fills `userKey` for each Salesforce user is outside this chapter and is the least verified part of the design (see [Limitations](#12-limitations)).
+- It is never derived from the Salesforce record Id, the username, the name or the e-mail address.
+- The same `userKey` must appear in the baseline and in the snapshot.
 
-If correlation is wrong, every later result is wrong. A wrong `userKey` mapping is a baseline defect, not a reconciliation defect.
+The snapshot adapter fills `userKey` with one rule: **the value of the single field named in the policy, used exactly as stored.** The policy accepts only `EmployeeNumber` or a custom field ending in `__c`. Fields such as `Email`, `Username`, `FederationIdentifier` and `Id` are rejected when the policy is loaded.
+
+| User in the org | Treatment |
+|-----------------|-----------|
+| Has a valid key | Included in the snapshot |
+| Active, no usable key (empty, padded, invalid characters, too long) | Counted in `uncorrelatedUsers`. **This prevents a PASS** |
+| Inactive, no usable key | Counted in diagnostics only; an inactive user cannot sign in |
+| User type not listed in the policy | Excluded and counted in diagnostics |
+| Two users with the same key | Both kept; the reconciliation reports `AMBIGUOUS` |
+
+If correlation is wrong, every later result is wrong. A wrong `userKey` mapping is a baseline or key-data defect, not a reconciliation defect. Whether the chosen field is populated accurately in a real org is **not verified**.
+
+The full live procedure is in the [SSO audit workflow](sso-audit-workflow.md).
 
 ## 4. Salesforce users and identity provider identities
 
@@ -78,7 +90,8 @@ Snapshot:
     { "userKey": "admin-001", "active": true, "federationId": "employee-101" }
   ],
   "totalSize": 1,
-  "done": true
+  "done": true,
+  "uncorrelatedUsers": 0
 }
 ```
 
@@ -94,6 +107,7 @@ Snapshot:
 | `active` | A boolean. `"true"` and `1` are rejected |
 | `totalSize` (optional) | Non-negative integer. If present it must equal the number of users |
 | `done` (optional) | Boolean. If `false`, the snapshot is unverifiable |
+| `uncorrelatedUsers` (optional) | Non-negative integer: active users that could not be given a `userKey`. Absent means 0. Greater than 0 prevents `PASS` |
 | Federation ID characters | Control characters, invisible and bidirectional-formatting characters and the replacement character are rejected, so identifiers cannot disguise themselves in logs |
 
 File rules: at most 64 MiB, nesting at most 8 levels, valid JSON, **no duplicate object keys**, an optional UTF-8 byte order mark is accepted (Windows tools write one).
@@ -121,7 +135,7 @@ The function is pure: no file, network or process access.
 
 5. Every snapshot user whose `userKey` is not in the baseline becomes `UNMANAGED` (or `AMBIGUOUS` if that key is duplicated).
 6. Sort findings by `userKey` in UTF-16 code unit order. This does not depend on the machine's locale.
-7. The verdict is `PASS` only if there is at least one finding **and** every finding is `MATCH`. Otherwise it is `REVIEW_REQUIRED`.
+7. The verdict is `PASS` only if there is at least one finding, **no active user is uncorrelated**, and every finding is `MATCH`. Otherwise it is `REVIEW_REQUIRED`.
 
 An unmanaged user therefore prevents `PASS`, even if every approved identity matches.
 
@@ -134,6 +148,7 @@ An unmanaged user therefore prevents `PASS`, even if every approved identity mat
   "mode": "READ_ONLY",
   "verdict": "REVIEW_REQUIRED",
   "counts": { "INACTIVE": 1, "MATCH": 1, "MISMATCH": 1, "MISSING": 1 },
+  "uncorrelatedUsers": 0,
   "findings": [ { "userKey": "admin-001", "status": "MATCH" } ]
 }
 ```
@@ -204,8 +219,10 @@ Checked and **found safe** as delivered: keys named `__proto__` and `constructor
 
 ## 12. Limitations
 
-- **Offline only.** There is no Salesforce CLI integration. The snapshot format is a contract that nothing has produced from a real org.
-- **No correlation producer.** How `userKey` is attached to real Salesforce users is not designed or verified here.
+- **Never run against a real org.** The Salesforce CLI adapter is tested against a fake runner and fictional fixtures only. The CLI output shape, the field names and the pagination behavior are unverified against a real org.
+- **Large orgs may fail closed.** The adapter requires `totalSize` to equal the records returned, so a CLI that returns a partial result produces `E_QUERY_INCOMPLETE` rather than a partial audit.
+- **Key data quality is unverified.** The correlation rule is deterministic, but whether `EmployeeNumber` or your custom field is populated accurately is a property of your org.
+- **Permissions.** Reading SSO configuration needs administrative read access (see the [workflow](sso-audit-workflow.md#permissions-the-read-only-user-is-not-minimal)).
 - **No collision escalation.** If an unmanaged user holds the Federation ID that a managed user is expected to have, the result is `MISMATCH` for the managed user and `UNMANAGED` for the holder. The relationship between the two is not reported.
 - **Exact comparison only.** Case, normalization and whitespace rules of the real systems are unverified.
 - **Snapshot provenance is not checked.**
@@ -217,23 +234,27 @@ Checked and **found safe** as delivered: keys named `__proto__` and `constructor
 
 | Claim | Evidence | Reproduce |
 |-------|----------|-----------|
-| 55 tests pass offline | [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44461346263) and the local run | `cd scripts/sso-continuity && npm test` |
+| 121 tests pass offline | __CI_RUN_URL_V03__ and the local run | `cd scripts/sso-continuity && npm test` |
 | Each confirmed defect is caught by a test | A mutation check applied nine deliberate regressions one at a time (the defects D1 to D6 and D10 as delivered, a safety property that a test asserts, and printing an internal error message); each made at least one test fail | Re-introduce a change from the table in Section 9 and run the suite |
 | No credentials are needed | The suite and the demonstration run with an empty environment | `env -i PATH="$PATH" node --test` |
-| The module cannot write, call out or spawn | A test scans the source for such capabilities | `test/cli.test.mjs` |
+| The module cannot write to Salesforce or to disk, call out, or read the environment, and only one file can start a process | Tests scan the source; every CLI call is checked to be `sf data query` of an allow-listed SELECT | `test/cli.test.mjs`, `test/live-cli.test.mjs` |
+| Eleven further deliberate regressions in the live path were each caught | Mutation check: skipping the org check, case-insensitive org IDs, e-mail as correlation field, ignoring `totalSize` or `done`, letting uncorrelated users pass, dropping the SAML warning, allowing a secret field, printing a raw issuer URL, ignoring the policy pin, counting inactive users as blocking | Re-introduce a change and run the suite |
+| Two crashes were found and fixed | A `null` record raised a `TypeError` in the snapshot and inventory builders; both now fail closed with `E_CLI_OUTPUT` | `non-object records fail closed` tests |
 
 Not evidence: this chapter has no Salesforce run, no IdP interaction and no login result.
 
 ## 14. Path to the next maturity level
 
-1. Produce a snapshot from a real sandbox with a documented, reviewed read-only query, and compare it with the contract here.
-2. Define and test how `userKey` is attached.
-3. Run the pipeline example on a real Azure DevOps Server or GitLab instance.
+1. Run `snapshot`, `inventory` and `verify` against a real sandbox with a reviewed read-only user, and compare the real CLI output with the shape the code expects.
+2. Check that the correlation field is populated accurately in that org.
+3. Run the pipeline examples on a real Azure DevOps Server or GitLab instance.
 4. Only then consider `ci-validated`. It also requires an actual SSO login check, which is a separate capability described in the [SSO continuity architecture](sso-continuity-architecture.md).
 
 ## 15. References
 
 - [Maturity policy and verification matrix](../README.md#maturity-policy)
+- [SSO audit workflow](sso-audit-workflow.md)
+- [Post-refresh recovery architecture (design)](sso-post-refresh-recovery-architecture.md)
 - [SSO continuity architecture (future modules)](sso-continuity-architecture.md)
 - [Chapter 8 — Org Guard](08-org-guard.md)
 - [Module README](../scripts/sso-continuity/README.md)
