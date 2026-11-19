@@ -1,0 +1,24 @@
+# ILLUSTRATIVE EXAMPLE. NOT EXECUTED on GitLab CI or any other CI system.
+# Only checked to be syntactically valid YAML. All names are fictional.
+#
+# Runs the same offline test suite as the GitHub Actions workflow. It needs no
+# Salesforce credentials and does not contact any Salesforce org or identity provider.
+# It validates the reconciliation logic, not SSO.
+
+.sso-continuity-tests:
+  stage: test
+  script:
+    - cd scripts/sso-continuity
+    - node --version
+    - node --test
+  rules:
+    - changes:
+        - scripts/sso-continuity/**/*
+
+sso-continuity-node20:
+  extends: .sso-continuity-tests
+  image: node:20
+
+sso-continuity-node22:
+  extends: .sso-continuity-tests
+  image: node:22
