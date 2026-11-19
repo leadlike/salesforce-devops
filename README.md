@@ -55,7 +55,7 @@ The scope below is planned. No release has been tagged yet. Material that alread
 |---------|-------|
 | **v0.1 – Safe Salesforce Deployment Foundations** | README and architecture, Org Guard implementation, offline test suite (no Salesforce credentials needed), sample CI configuration, threat model, maturity and evidence matrix, one complete troubleshooting example |
 | v0.2 | Fictional Salesforce DX project, deployment validation, release manifest |
-| v0.3 | Identity reconciliation example, SSO dependency matrix, post-refresh runbook |
+| v0.3 | Identity reconciliation example (an offline version is already published as Chapter 14), SSO dependency matrix, post-refresh runbook |
 | v0.4 | Documented sandbox rehearsal and failure-scenario catalog |
 | v0.5 | GitHub Actions and GitLab equivalents, tool comparison |
 
@@ -78,16 +78,19 @@ Simulated results are never presented as results from a real Salesforce org.
 
 ### Verification matrix
 
-Each chapter reports four independent kinds of verification instead of one label. The only chapter with implementation so far is Chapter 8.
+Each chapter reports independent kinds of verification instead of one label. Chapters 8 and 14 are the only ones with an implementation so far.
 
-| Verification | Chapter 8: Org Guard | Evidence |
-|--------------|----------------------|----------|
-| Offline unit tests validated in CI | **Verified.** 50 of 50 pass on GitHub-hosted runners (Linux and Windows, Node.js 20 and 22) | [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364) |
-| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed; CLI output shapes are assumed from documentation | None |
-| Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
-| Live Salesforce deployment | **Not yet verified.** Nothing has run against a Salesforce org | None |
+| Verification | Chapter 8: Org Guard | Chapter 14: Federation ID reconciliation | Evidence |
+|--------------|----------------------|------------------------------------------|----------|
+| Offline unit tests validated in CI | **Verified.** 50 of 50 on GitHub-hosted runners (Linux and Windows, Node.js 20 and 22) | **Verified.** 55 of 55 on the same four environments | [Chapter 8 run](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364); Chapter 14: [Actions run on the feature branch](https://github.com/leadlike/salesforce-devops/actions/runs/44460893193) |
+| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed | **Not yet verified.** No snapshot has been produced from a real org | None |
+| Azure DevOps Server integration | **Not yet verified.** Example checked only as valid YAML | **Not yet verified.** Example checked only as valid YAML | None |
+| GitLab CI integration | Not applicable | **Not yet verified.** Example checked only as valid YAML | None |
+| Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | **Not yet verified.** Nothing has run against a Salesforce org | None |
+| Actual SSO login verification | Not applicable | **Not yet verified.** No user has signed in through an identity provider | None |
+| Post-refresh recovery | Not applicable | **Not yet verified.** No sandbox has been refreshed and recovered | None |
 
-Chapter 8 therefore stays at `local-tested`.
+Both chapters therefore stay at `local-tested`. Reconciliation compares approved Federation IDs with a snapshot of users. It is **not** SSO validation.
 
 ## When not to build this yourself
 

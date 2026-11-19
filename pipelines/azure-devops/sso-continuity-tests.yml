@@ -1,0 +1,32 @@
+# ILLUSTRATIVE EXAMPLE. NOT EXECUTED on Azure DevOps Server or any other CI system.
+# Only checked to be syntactically valid YAML. All names are fictional.
+#
+# Runs the same offline test suite as the GitHub Actions workflow. It needs no
+# Salesforce credentials and does not contact any Salesforce org or identity provider.
+# It validates the reconciliation logic, not SSO.
+#
+# Requires a self-hosted agent with Node.js 20 or 22 on the PATH.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - scripts/sso-continuity
+
+pool:
+  name: Self-Hosted-Agents          # fictional pool name
+
+steps:
+  - checkout: self
+    persistCredentials: false
+
+  - script: node --version
+    displayName: Show Node.js version
+
+  # A non-zero exit code fails the step, and later steps are skipped by default.
+  # Do not pipe the output into another command and do not set continueOnError.
+  - script: node --test
+    displayName: Run SSO continuity tests
+    workingDirectory: scripts/sso-continuity

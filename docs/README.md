@@ -2,7 +2,7 @@
 
 Each chapter is a verifiable engineering pattern with five elements: a problem statement, an implementation, a threat or failure model, executable tests and evidence.
 
-"Status" is the maturity of the material **published in this repository**. At this stage only Chapter 8 has been published. See the [verification matrix](../README.md#verification-matrix) for what that status does and does not cover.
+"Status" is the maturity of the material **published in this repository**. At this stage only Chapters 8 and 14 have been published. See the [verification matrix](../README.md#verification-matrix) for what that status does and does not cover.
 
 | Part | Chapter | Status | Target |
 |------|---------|--------|--------|
@@ -19,12 +19,14 @@ Each chapter is a verifiable engineering pattern with five elements: a problem s
 | | 11. End-to-end tests for email and Cases | concept | v0.4 |
 | | 12. Test data seeding | concept | v0.4 |
 | IV. Identity and continuity | 13. SSO with an enterprise identity provider | concept | v0.3 |
-| | 14. Federation ID reconciliation and its threat model | concept | v0.3 |
+| | 14. [SSO audit and Federation ID reconciliation](14-sso-audit-federation-id-reconciliation.md) | local-tested | v0.3 |
 | | 15. Configuration backup and drift detection | concept | v0.3 |
 | | 16. Post-refresh recovery runbook | concept | v0.3 |
 | V. Operations and evidence | 17. Secrets, certificates and audit | concept | v0.1 |
 | | 18. Failure-scenario catalog | concept | v0.4 |
 | | 19. When not to build this yourself | concept | v0.5 |
 | | 20. Complete example: pipeline and recovery | concept | v0.5 |
+
+Chapter 14 is offline and read-only, and it does not verify SSO. The planned modules around it are described in the [SSO continuity architecture](sso-continuity-architecture.md), which is a design, not an implementation.
 
 Chapters and targets may change as evidence is gathered.
