@@ -18,11 +18,15 @@ It is a vendor-neutral reference for architects, DevOps engineers and identity e
 2. **Fail closed.** When a check cannot be completed, the operation stops.
 3. **Identity changes are security operations.** Restoring a Federation ID changes who can sign in as a user. It is separately authorized and never part of a normal deployment stage.
 4. **Git is not an identity vault.** Git holds scripts, schemas and non-sensitive policy. Individual identity mappings belong in a protected store.
-5. **Evidence over assertion.** Every pattern ships with tests and recorded output.
+5. **Evidence over assertion.** The goal is for every pattern to be published with tests and recorded output. Until that evidence exists, the pattern is labeled accordingly.
 
-## Reference environment model
+These principles describe the intended direction of the guide. They are not claims about what is already implemented.
 
-The worked example uses four levels. This is an illustration, not a universal Salesforce architecture: the right number of environments depends on release risk, team topology, data needs and organizational controls.
+## Reference architecture, not mandatory architecture
+
+Everything in this guide is a **reference**: a worked example to adapt, compare and challenge. Nothing here is a required architecture, and the right design depends on your release risk, team topology, data needs, integrations and organizational controls.
+
+The worked example uses four levels as an illustration only.
 
 ```
 Developer Environment  ->  Integration / QA  ->  Business UAT  ->  Production
@@ -43,9 +47,11 @@ The important design decision is not the number of environments. It is the **pro
 
 The full chapter list and status is in [docs/README.md](docs/README.md).
 
-## Roadmap
+## Roadmap (planned, not delivered)
 
-| Release | Scope |
+The scope below is planned. None of it has been released yet.
+
+| Release | Planned scope |
 |---------|-------|
 | **v0.1 – Safe Salesforce Deployment Foundations** | README and architecture, Org Guard implementation, offline test suite (no Salesforce credentials needed), sample CI configuration, threat model, maturity and evidence matrix, one complete troubleshooting example |
 | v0.2 | Fictional Salesforce DX project, deployment validation, release manifest |
@@ -74,7 +80,7 @@ Salesforce-native tooling, open-source projects and commercial platforms already
 
 ## About the examples
 
-All examples are fictional. No real organization, tenant, user, domain or credential appears in this repository. Parts of the implementation and documentation are assisted by AI coding agents; the architecture, security decisions and validation are the author's responsibility, and validation evidence is published alongside the code.
+All examples are fictional. No real organization, tenant, user, domain or credential appears in this repository. Implementation and documentation are assisted by AI coding agents. The architecture, security decisions and validation remain the author's responsibility, and validation evidence is intended to be published alongside the code.
 
 ## Contributing
 
