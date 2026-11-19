@@ -1,41 +1,54 @@
-# SSO Continuity v0.2 — offline identity reconciliation reference
+# SSO continuity: Federation ID reconciliation
 
-**Status:** local-tested only. This package has not been tested against Salesforce, an identity provider, or an actual sandbox refresh.
+Offline, read-only reference implementation of [Chapter 14](../../docs/14-sso-audit-federation-id-reconciliation.md). It compares an approved list of Federation IDs with a snapshot of Salesforce users. All data in this directory is fictional.
 
-This is a fictional, vendor-neutral, read-only Node.js reference module. It reconciles an approved expected Federation ID baseline with a Salesforce-shaped snapshot, without contacting Salesforce or modifying any identities. It is **not** an SSO readiness certification and must not be used as an identity restoration tool.
+**Status: `local-tested`.** Offline tests only. Nothing has run against a Salesforce org or an identity provider, and this tool does **not** verify that anyone can sign in. See the chapter for the verification matrix and limitations.
 
 ## Run
 
-Requires Node.js >= 20, no npm dependencies or credentials.
+Requires Node.js 20 or later. No dependencies, no network, no credentials.
 
-```sh
-npm test
-npm run audit:demo
+```
+npm test            # runs every test in test/ (node --test)
+npm run audit:demo  # runs the fictional example; exits with 2
 ```
 
-`audit:demo` intentionally exits **2** because the fictional snapshot contains discrepancies. Exit 0 = all managed records match; 2 = review required; 3 = invalid/unverifiable inputs. In automation, do not treat exit 2 or 3 as success.
+Direct use:
 
-## Input contract
+```
+node src/cli.mjs <baseline.json> <snapshot.json>
+```
 
-Both JSON documents require `schemaVersion: 1` and the same `orgKey`. Baseline `identities` contain stable fictional `userKey` and `federationId`. Snapshot `users` contain `userKey`, boolean `active`, and nullable/string `federationId`.
+## Exit codes
 
-`userKey` is a pre-approved stable correlation key, **not** a Salesforce email, username, or IdP subject inferred by this program. The mapping process establishing this key must be separately authorized and validated. Never assume Federation ID equals email. The code does not connect to an IdP or verify that a Federation ID belongs to the intended person.
+| Code | Meaning |
+|------|---------|
+| 0 | Every baseline identity matches and there are no unmanaged users |
+| 2 | Findings require review |
+| 3 | Input is invalid or unverifiable, or an internal error occurred |
 
-## Results and limitations
+Only `0` is success. Federation ID values are never printed. `userKey` values are, so treat the output as internal.
 
-Findings: `MATCH`, `MISSING`, `MISMATCH`, `INACTIVE`, `DUPLICATE_ACTUAL`, `AMBIGUOUS`, `USER_NOT_FOUND`, `UNMANAGED`. Duplicate baseline identities and expected Federation IDs are ambiguous. Inputs are never changed. Results intentionally omit Federation ID values, though `userKey` is still potentially identifying in real environments.
+## Layout
 
-**Not yet implemented:** Salesforce CLI integration; SAML, certificates, Auth Providers or Connected App inspection; authoritative identity mapping; protected storage; approval workflow; restore/apply; external SSO login validation; sandbox refresh recovery; CI validation. The program does not guarantee uniqueness across any unobserved Salesforce users or external IdP identities. A real implementation must query the full relevant scope, protect the baseline and outputs, and establish the identity authority before proposing changes.
+| Path | Purpose |
+|------|---------|
+| `src/reconcile.mjs` | Pure reconciliation function |
+| `src/schema.mjs` | Closed input schemas |
+| `src/json-input.mjs` | Strict JSON loading: size, depth, duplicate keys |
+| `src/limits.mjs` | Resource limits |
+| `src/errors.mjs` | Error type and stable error codes |
+| `src/cli.mjs` | Command-line entry point |
+| `fixtures/` | Fictional example inputs |
+| `test/` | Tests (`node:test`, no dependencies) |
+| `testkit/` | Test helpers, kept outside `test/` |
 
-## Security requirements for future integration
+## Not implemented
 
-- Read-only service account for inventory; no permission to modify users.
-- Protected identity baseline outside the public repository; no real identity data in Git.
-- Fail closed on missing, malformed or cross-org input.
-- Do not trust snapshot content or baseline changes from an untrusted pull request.
-- Keep any future write path in a separately reviewed and authorized tool with explicit target org, baseline provenance and auditable approval.
-- Use synthetic data for public demonstrations.
+No Salesforce CLI integration, no SAML, certificate, Auth Provider or Connected App inspection, no backup or post-refresh comparison, and **no write operations of any kind**. See the [future architecture](../../docs/sso-continuity-architecture.md).
 
-## Intended repository integration
+## Security notes
 
-Copy the module into `scripts/sso-continuity/` and link it from the identity chapter after review. This is a standalone delivery, not a commit to the public repository.
+- Do not commit a real baseline. A baseline maps people to Federation IDs and belongs in a protected store.
+- Do not let an unreviewed pull request supply both the baseline and the policy that interprets it.
+- A passing result is only as trustworthy as the baseline and the snapshot it was given.

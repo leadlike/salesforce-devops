@@ -1,1 +1,22 @@
-{"schemaVersion":1,"orgKey":"fictional-qa","identities":[{"userKey":"admin-001","federationId":"employee-101"},{"userKey":"admin-002","federationId":"employee-102"},{"userKey":"admin-003","federationId":"employee-103"},{"userKey":"admin-004","federationId":"employee-104"}]}
+{
+  "schemaVersion": 1,
+  "orgKey": "fictional-qa",
+  "identities": [
+    {
+      "userKey": "admin-001",
+      "federationId": "employee-101"
+    },
+    {
+      "userKey": "admin-002",
+      "federationId": "employee-102"
+    },
+    {
+      "userKey": "admin-003",
+      "federationId": "employee-103"
+    },
+    {
+      "userKey": "admin-004",
+      "federationId": "employee-104"
+    }
+  ]
+}
