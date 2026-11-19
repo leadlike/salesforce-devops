@@ -4,7 +4,7 @@
 
 | Verification | Status | Evidence |
 |--------------|--------|----------|
-| Offline unit tests validated in CI | **Verified.** 55 of 55 on GitHub-hosted runners: Linux and Windows, Node.js 20 and 22 | __CI_RUN_URL__ |
+| Offline unit tests validated in CI | **Verified.** 55 of 55 on GitHub-hosted runners: Linux and Windows, Node.js 20 and 22 | [Actions run on the feature branch](https://github.com/leadlike/salesforce-devops/actions/runs/44460893193) |
 | Salesforce CLI integration | **Not yet verified.** No snapshot has ever been produced from a real org; the snapshot format is a contract, not an observed output | None |
 | Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
 | GitLab CI integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
@@ -217,7 +217,7 @@ Checked and **found safe** as delivered: keys named `__proto__` and `constructor
 
 | Claim | Evidence | Reproduce |
 |-------|----------|-----------|
-| 55 tests pass offline | __CI_RUN_URL__ and the local run | `cd scripts/sso-continuity && npm test` |
+| 55 tests pass offline | [Actions run on the feature branch](https://github.com/leadlike/salesforce-devops/actions/runs/44460893193) and the local run | `cd scripts/sso-continuity && npm test` |
 | Each confirmed defect is caught by a test | A mutation check applied nine deliberate regressions one at a time (the defects D1 to D6 and D10 as delivered, a safety property that a test asserts, and printing an internal error message); each made at least one test fail | Re-introduce a change from the table in Section 9 and run the suite |
 | No credentials are needed | The suite and the demonstration run with an empty environment | `env -i PATH="$PATH" node --test` |
 | The module cannot write, call out or spawn | A test scans the source for such capabilities | `test/cli.test.mjs` |
