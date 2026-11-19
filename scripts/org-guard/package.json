@@ -1,0 +1,9 @@
+{
+  "name": "org-guard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generic reference implementation of a Salesforce target-org guard. Draft, not released.",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test" }
+}
