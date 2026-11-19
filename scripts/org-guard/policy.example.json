@@ -1,0 +1,7 @@
+{
+  "expectedOrgId": "00D000000000QA1AAA",
+  "environmentType": "sandbox",
+  "expectedUsername": "ci-user@example-corp.com.qa",
+  "allowedInstanceHosts": ["example-corp--qa.sandbox.my.salesforce.com"],
+  "denyOrgIds": ["00D000000000PRDAAA"]
+}

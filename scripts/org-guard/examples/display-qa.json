@@ -1,0 +1,10 @@
+{
+  "status": 0,
+  "result": {
+    "id": "00D000000000QA1AAA",
+    "username": "ci-user@example-corp.com.qa",
+    "instanceUrl": "https://example-corp--qa.sandbox.my.salesforce.com",
+    "apiVersion": "62.0",
+    "accessToken": "FAKE-TOKEN-DO-NOT-USE"
+  }
+}

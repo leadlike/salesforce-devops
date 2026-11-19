@@ -1,0 +1,42 @@
+name: org-guard-tests
+
+# Runs the offline Org Guard test suite. It needs no Salesforce credentials, and it
+# does NOT validate anything against a Salesforce org.
+on:
+  push:
+    paths:
+      - 'scripts/org-guard/**'
+      - '.github/workflows/org-guard-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    defaults:
+      run:
+        shell: bash
+        working-directory: scripts/org-guard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run tests
+        run: |
+          set -o pipefail
+          echo "runner=$RUNNER_OS node=$(node --version)"
+          node --test --test-reporter=tap | tee test-output.txt
+      - name: Publish result summary as an annotation
+        if: always()
+        run: |
+          summary=$(grep -E '^# (tests|pass|fail|cancelled|skipped) ' test-output.txt | tr '\n' ' ')
+          echo "::notice title=Org Guard tests::$RUNNER_OS node=$(node --version) ${summary}"

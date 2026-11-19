@@ -1,0 +1,65 @@
+# ILLUSTRATIVE EXAMPLE. NOT EXECUTED on Azure DevOps Server or any other CI system.
+# Only checked to be syntactically valid YAML. All names are fictional.
+#
+# Lives in the PROTECTED "PipelineControls" repository, together with the Org Guard
+# script and the policy files. Product-repository pull requests cannot change it.
+
+parameters:
+  - name: environmentName
+    type: string
+  - name: policyName
+    type: string
+  - name: targetUsername
+    type: string
+
+stages:
+  - stage: Validate
+    jobs:
+      - deployment: GuardedValidate
+        displayName: Authenticate, guard, validate
+        environment: ${{ parameters.environmentName }}   # checks on this environment run before the job starts
+        pool:
+          name: Default                                   # self-hosted agent pool
+        variables:
+          - group: OrgGuard-Controls                      # variable group editable by administrators only
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self                          # the product source
+                - checkout: controls                      # the pinned guard, policies and template
+
+                # 1. Authenticate (JWT). The key is a secure file, never a repository file.
+                - task: DownloadSecureFile@1
+                  name: jwtKey
+                  inputs:
+                    secureFile: ci-jwt-server.key
+                - script: >
+                    sf org login jwt
+                    --client-id $(SF_CLIENT_ID)
+                    --jwt-key-file $(jwtKey.secureFilePath)
+                    --username ${{ parameters.targetUsername }}
+                    --instance-url $(SF_INSTANCE_URL)
+                  displayName: Authenticate
+
+                # 2. Org Guard. A non-zero exit code fails this step. Every later step has
+                #    the default condition (succeeded()), so it is skipped.
+                - script: >
+                    node $(Pipeline.Workspace)/s/PipelineControls/org-guard/org-guard.mjs
+                    --policy $(Pipeline.Workspace)/s/PipelineControls/policies/${{ parameters.policyName }}.json
+                    --policy-sha256 $(ORG_GUARD_POLICY_SHA256_${{ upper(parameters.policyName) }})
+                    --target-org ${{ parameters.targetUsername }}
+                  displayName: Org Guard
+                  # Do NOT add: continueOnError, condition: always(), or failOnStderr: false workarounds.
+                  # Do NOT pipe the output (for example "| tee"). A pipe hides the exit code unless
+                  # the shell is configured with "set -o pipefail".
+
+                # 3. Validate (no deployment). It targets the username that was verified.
+                - script: >
+                    sf project deploy start
+                    --dry-run
+                    --target-org ${{ parameters.targetUsername }}
+                    --source-dir $(Pipeline.Workspace)/s/$(Build.Repository.Name)/force-app
+                    --test-level RunLocalTests
+                  displayName: Validate deployment (dry run)
+                  condition: succeeded()                  # explicit for readers; this is the default
