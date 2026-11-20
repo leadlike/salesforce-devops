@@ -8,7 +8,7 @@
 | Salesforce CLI integration | **Implemented, not verified.** The adapter is tested only against a fake CLI runner. The real CLI's output shape was taken from documentation, and no snapshot has ever been produced from a real org | None |
 | Azure DevOps Server integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
 | GitLab CI integration | **Not yet verified.** The example pipeline has only been checked as valid YAML | None |
-| Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | None |
+| Live Salesforce run | **Validated by the author on a real sandbox (author-reported).** No execution log is published here, so it is not independently reproducible | None published |
 | Actual SSO login verification | **Not yet verified.** No user has signed in through an identity provider for this chapter | None |
 | Post-refresh recovery | **Not yet verified.** No sandbox has been refreshed and recovered | None |
 

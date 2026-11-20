@@ -86,7 +86,7 @@ Each chapter reports independent kinds of verification instead of one label. Cha
 | Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed | **Implemented, not verified.** A read-only adapter exists and is tested only against a fake CLI runner; no real `sf` has been executed | None |
 | Azure DevOps Server integration | **Not yet verified.** Example checked only as valid YAML | **Not yet verified.** Two examples (tests, read-only verify) checked only as valid YAML | None |
 | GitLab CI integration | Not applicable | **Not yet verified.** Two examples (tests, read-only verify) checked only as valid YAML | None |
-| Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | **Not yet verified.** Nothing has run against a Salesforce org | None |
+| Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | **Validated by the author on a real sandbox (author-reported).** No execution log is published in this repository, so it is not independently reproducible | None published |
 | Actual SSO login verification | Not applicable | **Not yet verified.** No user has signed in through an identity provider | None |
 | Post-refresh recovery | Not applicable | **Not yet verified.** No sandbox has been refreshed and recovered | None |
 
