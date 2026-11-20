@@ -1,0 +1,63 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": "admin-001",
+        "IsActive": true,
+        "FederationIdentifier": "employee-101",
+        "UserType": "Standard"
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": "admin-002",
+        "IsActive": true,
+        "FederationIdentifier": null,
+        "UserType": "Standard"
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": "admin-003",
+        "IsActive": true,
+        "FederationIdentifier": "employee-999",
+        "UserType": "Standard"
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": "admin-004",
+        "IsActive": false,
+        "FederationIdentifier": "employee-104",
+        "UserType": "Standard"
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": null,
+        "IsActive": true,
+        "FederationIdentifier": null,
+        "UserType": "Standard"
+      },
+      {
+        "attributes": {
+          "type": "User"
+        },
+        "EmployeeNumber": null,
+        "IsActive": true,
+        "FederationIdentifier": null,
+        "UserType": "AutomatedProcess"
+      }
+    ],
+    "totalSize": 6,
+    "done": true
+  }
+}

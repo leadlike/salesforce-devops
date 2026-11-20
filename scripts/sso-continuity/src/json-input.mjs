@@ -6,6 +6,7 @@
 // fragments of the input. This module closes those gaps and enforces size and
 // nesting limits before the document is parsed.
 
+import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import { Unverifiable } from './errors.mjs';
 import { DEFAULT_LIMITS } from './limits.mjs';
@@ -85,17 +86,25 @@ export function parseJsonText(text, limits = DEFAULT_LIMITS) {
   return value;
 }
 
-/** Read and parse a JSON file with a size limit. Only regular files are accepted. */
-export function readJsonFile(path, limits = DEFAULT_LIMITS) {
-  let text;
+function readText(path, limits) {
   try {
     const info = statSync(path);
     if (!info.isFile()) throw new Unverifiable('E_INPUT_UNREADABLE', 'input is unreadable');
     if (info.size > limits.maxFileBytes) throw new Unverifiable('E_INPUT_TOO_LARGE', 'input exceeds the size limit');
-    text = readFileSync(path, 'utf8');
+    return readFileSync(path);
   } catch (e) {
     if (e instanceof Unverifiable) throw e;
     throw new Unverifiable('E_INPUT_UNREADABLE', 'input is unreadable');
   }
-  return parseJsonText(text, limits);
+}
+
+/** Read and parse a JSON file with a size limit. Only regular files are accepted. */
+export function readJsonFile(path, limits = DEFAULT_LIMITS) {
+  return parseJsonText(readText(path, limits).toString('utf8'), limits);
+}
+
+/** Like readJsonFile, and also returns the SHA-256 of the exact file bytes (for pinning). */
+export function readJsonFileWithDigest(path, limits = DEFAULT_LIMITS) {
+  const bytes = readText(path, limits);
+  return { value: parseJsonText(bytes.toString('utf8'), limits), sha256: createHash('sha256').update(bytes).digest('hex') };
 }

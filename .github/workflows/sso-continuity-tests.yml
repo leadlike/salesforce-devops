@@ -1,8 +1,9 @@
 name: sso-continuity-tests
 
-# Runs the offline SSO continuity test suite. It needs no Salesforce credentials and
-# no secrets, and it does NOT validate anything against a Salesforce org or an
-# identity provider.
+# Runs the offline SSO continuity test suite, including the Salesforce CLI adapter, which
+# is tested against a fake CLI runner and fictional fixtures. It needs no Salesforce
+# credentials and no secrets, and it does NOT validate anything against a Salesforce org
+# or an identity provider. The real `sf` is not installed on the runner.
 on:
   push:
     paths:
@@ -42,7 +43,7 @@ jobs:
           set -o pipefail
           echo "runner=$RUNNER_OS node=$(node --version)"
           node --test --test-reporter=tap | tee test-output.txt
-      - name: Run the demonstration (expected exit code 2)
+      - name: Run the offline demonstration (expected exit code 2)
         run: |
           set +e
           node src/cli.mjs fixtures/baseline.json fixtures/snapshot.json > demo-output.json

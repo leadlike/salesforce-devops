@@ -82,10 +82,10 @@ Each chapter reports independent kinds of verification instead of one label. Cha
 
 | Verification | Chapter 8: Org Guard | Chapter 14: Federation ID reconciliation | Evidence |
 |--------------|----------------------|------------------------------------------|----------|
-| Offline unit tests validated in CI | **Verified.** 50 of 50 on GitHub-hosted runners (Linux and Windows, Node.js 20 and 22) | **Verified.** 55 of 55 on the same four environments | [Chapter 8 run](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364); Chapter 14: [Actions run on `main`](https://github.com/leadlike/salesforce-devops/actions/runs/44461346263) |
-| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed | **Not yet verified.** No snapshot has been produced from a real org | None |
-| Azure DevOps Server integration | **Not yet verified.** Example checked only as valid YAML | **Not yet verified.** Example checked only as valid YAML | None |
-| GitLab CI integration | Not applicable | **Not yet verified.** Example checked only as valid YAML | None |
+| Offline unit tests validated in CI | **Verified.** 50 of 50 on GitHub-hosted runners (Linux and Windows, Node.js 20 and 22) | **Verified.** 121 of 121 on the same four environments | [Chapter 8 run](https://github.com/leadlike/salesforce-devops/actions/runs/44446574364); Chapter 14: [Actions run on the feature branch](https://github.com/leadlike/salesforce-devops/actions/runs/44462356296) |
+| Salesforce CLI integration | **Not yet verified.** No real `sf` has been executed | **Implemented, not verified.** A read-only adapter exists and is tested only against a fake CLI runner; no real `sf` has been executed | None |
+| Azure DevOps Server integration | **Not yet verified.** Example checked only as valid YAML | **Not yet verified.** Two examples (tests, read-only verify) checked only as valid YAML | None |
+| GitLab CI integration | Not applicable | **Not yet verified.** Two examples (tests, read-only verify) checked only as valid YAML | None |
 | Live Salesforce run | **Not yet verified.** Nothing has run against a Salesforce org | **Not yet verified.** Nothing has run against a Salesforce org | None |
 | Actual SSO login verification | Not applicable | **Not yet verified.** No user has signed in through an identity provider | None |
 | Post-refresh recovery | Not applicable | **Not yet verified.** No sandbox has been refreshed and recovered | None |

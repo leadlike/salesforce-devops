@@ -2,7 +2,7 @@
 
 Each chapter is a verifiable engineering pattern with five elements: a problem statement, an implementation, a threat or failure model, executable tests and evidence.
 
-"Status" is the maturity of the material **published in this repository**. At this stage only Chapters 8 and 14 have been published. See the [verification matrix](../README.md#verification-matrix) for what that status does and does not cover.
+"Status" is the maturity of the material **published in this repository**. At this stage only Chapters 8 and 14 have been published, with three supporting pages for the identity part. See the [verification matrix](../README.md#verification-matrix) for what that status does and does not cover.
 
 | Part | Chapter | Status | Target |
 |------|---------|--------|--------|
@@ -27,6 +27,10 @@ Each chapter is a verifiable engineering pattern with five elements: a problem s
 | | 19. When not to build this yourself | concept | v0.5 |
 | | 20. Complete example: pipeline and recovery | concept | v0.5 |
 
-Chapter 14 is offline and read-only, and it does not verify SSO. The planned modules around it are described in the [SSO continuity architecture](sso-continuity-architecture.md), which is a design, not an implementation.
+Chapter 14 is read-only, tested offline against a fake Salesforce CLI, and does not verify SSO. Supporting pages:
+
+- [SSO audit workflow](sso-audit-workflow.md): how the audit is run and read. `local-tested`.
+- [SSO continuity architecture](sso-continuity-architecture.md): the ten planned modules. Mostly design.
+- [Post-refresh recovery architecture](sso-post-refresh-recovery-architecture.md): design only; no code modifies Salesforce.
 
 Chapters and targets may change as evidence is gathered.

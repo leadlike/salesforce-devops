@@ -1,0 +1,66 @@
+# ILLUSTRATIVE EXAMPLE. NOT EXECUTED on Azure DevOps Server or any other CI system.
+# Only checked to be syntactically valid YAML. All names are fictional.
+#
+# Lives in the PROTECTED "PipelineControls" repository, together with the SSO continuity
+# module, the policy and the identity baseline. The real baseline maps people to
+# Federation IDs and must never be stored in a public repository or in the product
+# repository. Product-repository pull requests cannot change anything here.
+#
+# This is READ-ONLY. It reads users and SSO configuration with `sf data query`.
+# It changes nothing in Salesforce, and a PASS does not prove that anyone can sign in.
+
+parameters:
+  - name: environmentName
+    type: string
+  - name: policyName
+    type: string
+  - name: targetUsername
+    type: string
+
+stages:
+  - stage: SsoVerify
+    jobs:
+      - deployment: SsoVerify
+        displayName: Authenticate, guard, verify Federation IDs (read-only)
+        environment: ${{ parameters.environmentName }}   # a "Required template" check runs before the job starts
+        pool:
+          name: Default                                   # self-hosted agent pool
+        variables:
+          - group: OrgGuard-Controls                      # variable group editable by administrators only
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: controls                      # the pinned module, policies and baselines
+
+                - task: DownloadSecureFile@1
+                  name: jwtKey
+                  inputs:
+                    secureFile: ci-jwt-readonly.key       # a key for a READ-ONLY integration user
+                - script: >
+                    sf org login jwt
+                    --client-id $(SF_CLIENT_ID)
+                    --jwt-key-file $(jwtKey.secureFilePath)
+                    --username ${{ parameters.targetUsername }}
+                    --instance-url $(SF_INSTANCE_URL)
+                  displayName: Authenticate
+
+                # 1. Org Guard first: is this the org we meant?
+                - script: >
+                    node $(Pipeline.Workspace)/s/PipelineControls/org-guard/org-guard.mjs
+                    --policy $(Pipeline.Workspace)/s/PipelineControls/policies/${{ parameters.policyName }}.json
+                    --policy-sha256 $(ORG_GUARD_POLICY_SHA256_${{ upper(parameters.policyName) }})
+                    --target-org ${{ parameters.targetUsername }}
+                  displayName: Org Guard
+
+                # 2. Verify. Exit code 0 = verified and nothing to review.
+                #    2 = review required, 3 = unverifiable. Both fail the step.
+                - script: >
+                    node $(Pipeline.Workspace)/s/PipelineControls/sso-continuity/src/live-cli.mjs verify
+                    --policy $(Pipeline.Workspace)/s/PipelineControls/sso-policies/${{ parameters.policyName }}.json
+                    --policy-sha256 $(SSO_POLICY_SHA256_${{ upper(parameters.policyName) }})
+                    --baseline $(Pipeline.Workspace)/s/PipelineControls/sso-baselines/${{ parameters.policyName }}.json
+                    --target-org ${{ parameters.targetUsername }}
+                  displayName: Verify Federation IDs (read-only)
+                  # Do NOT add: continueOnError, condition: always(), or a pipe such as "| tee".
+                  # The output lists userKey values, so keep the build log access restricted.

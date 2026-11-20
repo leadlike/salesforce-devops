@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "orgKey": "fictional-qa",
+  "expectedOrgId": "00DFICTIONAL000",
+  "correlation": { "field": "EmployeeNumber" },
+  "includedUserTypes": ["Standard"]
+}

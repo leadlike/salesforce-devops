@@ -91,13 +91,14 @@ export function reconcile(baselineDoc, snapshotDoc, limits = DEFAULT_LIMITS) {
 
   // The baseline is guaranteed to be non-empty, so `findings` is never empty and PASS
   // cannot be reached without at least one identity having been verified.
-  const allMatch = findings.length > 0 && findings.every((f) => f.status === STATUS.MATCH);
+  const allMatch = findings.length > 0 && snapshot.uncorrelatedUsers === 0 && findings.every((f) => f.status === STATUS.MATCH);
   return {
     schemaVersion: 1,
     orgKey: baseline.orgKey,
     mode: 'READ_ONLY',
     verdict: allMatch ? 'PASS' : 'REVIEW_REQUIRED',
     counts,
+    uncorrelatedUsers: snapshot.uncorrelatedUsers,
     findings,
   };
 }
